@@ -15,6 +15,7 @@ use Nazymko\ScoreBoard\Domain\Score;
 use Nazymko\ScoreBoard\Infrastructure\InMemoryGameRepository;
 use Nazymko\ScoreBoard\ScoreBoard;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(ScoreBoard::class)]
@@ -62,13 +63,46 @@ final class ScoreBoardTest extends TestCase
         $this->board->startGame('Spain', 'spain');
     }
 
-    public function testATeamCannotBeInTwoLiveGamesAtOnce(): void
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function gamesInvolvingSpain(): iterable
+    {
+        yield 'as home team' => ['Spain', 'Italy'];
+        yield 'as away team' => ['Italy', 'Spain'];
+        yield 'spelled differently' => [' SPAIN ', 'Italy'];
+    }
+
+    #[DataProvider('gamesInvolvingSpain')]
+    public function testATeamCannotBeInTwoLiveGamesAtOnce(string $home, string $away): void
     {
         $this->board->startGame('Spain', 'Brazil');
 
         $this->expectException(TeamAlreadyPlaying::class);
 
+        $this->board->startGame($home, $away);
+    }
+
+    public function testARejectedStartLeavesTheBoardUnchanged(): void
+    {
+        $this->board->startGame('Spain', 'Brazil');
+
+        try {
+            $this->board->startGame('Spain', 'Italy');
+            self::fail('Expected the second game to be rejected.');
+        } catch (TeamAlreadyPlaying) {
+            self::assertSame('Brazil', $this->onlyGame()->awayTeam->name);
+        }
+    }
+
+    public function testATeamMayPlayAgainOnceItsGameIsFinished(): void
+    {
+        $id = $this->board->startGame('Spain', 'Brazil');
+        $this->board->finishGame($id);
+
         $this->board->startGame('Spain', 'Italy');
+
+        self::assertSame('Italy', $this->onlyGame()->awayTeam->name);
     }
 
     public function testFinishedGameIsRemovedFromTheBoard(): void

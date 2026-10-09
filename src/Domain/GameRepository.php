@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Nazymko\ScoreBoard\Domain;
 
 use Nazymko\ScoreBoard\Domain\Exception\GameNotFound;
-use Nazymko\ScoreBoard\Domain\Exception\TeamAlreadyPlaying;
 
 /**
  * Storage of the games currently in progress.
@@ -14,10 +13,7 @@ interface GameRepository
 {
     /**
      * Stores a game. A game with the same id is replaced in place, keeping
-     * its position in the order games were first saved. A new game is
-     * rejected when one of its teams is already in another stored game.
-     *
-     * @throws TeamAlreadyPlaying
+     * its position in the order games were first saved.
      */
     public function save(Game $game): void;
 
@@ -25,6 +21,11 @@ interface GameRepository
      * @throws GameNotFound
      */
     public function get(GameId $id): Game;
+
+    /**
+     * The stored game the team takes part in, if any.
+     */
+    public function findByTeam(Team $team): ?Game;
 
     /**
      * @throws GameNotFound

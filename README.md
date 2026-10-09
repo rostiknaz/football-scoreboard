@@ -80,9 +80,9 @@ the tests.
 * `Domain` holds the rules. The value objects are always valid: they throw
   on construction if the input is unacceptable, so nothing downstream
   re-validates. `Game` owns the rules about a single game.
-* `GameRepository` is the seam between the model and storage. It also
-  carries the one rule that spans several games (a team is in at most one
-  live game), because only the store can guarantee it atomically.
+* `GameRepository` is the seam between the model and storage: a collection
+  of live games with the queries the use cases need (`get`, `findByTeam`,
+  `all`). It holds no business rules.
 
 Dependencies point inwards only: `Infrastructure` and `ScoreBoard` depend
 on `Domain`; `Domain` depends on nothing.
@@ -123,15 +123,15 @@ Alternatives considered: a `startedAt` timestamp from a clock abstraction
 (timestamps collide and are not monotonic) or a sequence number stored on
 `Game` (a storage concern leaking into the model).
 
-### One live game per team is guaranteed by the repository
+### One live game per team is checked by the use case
 
-`GameRepository::save()` rejects a new game whose team is already in another
-stored game. A check in `ScoreBoard` before saving would be check-then-act
-and would race once the store is shared between processes. The rule is still
-declared in the domain, through the port's contract and the
-`TeamAlreadyPlaying` exception, and the contract test pins it for every
-adapter. In memory it is a hash index keyed by the normalised team name
-(O(1)); in a database it would be a unique index.
+`ScoreBoard::startGame()` asks the repository, through `findByTeam()`,
+whether either team is already in a stored game and refuses with
+`TeamAlreadyPlaying` before saving. The repository stays a collection with
+queries and carries no business rule. The in-memory adapter answers the
+query from an index keyed by the normalised team name, so the check is O(1).
+It is check-then-act, which is correct within one process; a shared store
+would back it with a unique index over the teams of live games.
 
 ### Errors are exceptions, one class per rule
 
@@ -158,7 +158,7 @@ game, a team that is already playing).
 | Scores must be non-negative integers | `Score` constructor |
 | A game id must have the generated format | `GameId` constructor |
 | A team cannot play against itself | `Game::start()` |
-| A team can be in only one live game at a time | `GameRepository::save()` |
+| A team can be in only one live game at a time | `ScoreBoard::startGame()`, using `GameRepository::findByTeam()` |
 | Updating or finishing an unknown game fails | `GameRepository::get()` and `remove()` |
 
 ## Assumptions where the exercise is silent

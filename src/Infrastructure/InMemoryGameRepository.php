@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Nazymko\ScoreBoard\Infrastructure;
 
 use Nazymko\ScoreBoard\Domain\Exception\GameNotFound;
-use Nazymko\ScoreBoard\Domain\Exception\TeamAlreadyPlaying;
 use Nazymko\ScoreBoard\Domain\Game;
 use Nazymko\ScoreBoard\Domain\GameId;
 use Nazymko\ScoreBoard\Domain\GameRepository;
+use Nazymko\ScoreBoard\Domain\Team;
 
 final class InMemoryGameRepository implements GameRepository
 {
@@ -27,14 +27,6 @@ final class InMemoryGameRepository implements GameRepository
     {
         $id = $game->id->value;
 
-        foreach ($game->teams() as $team) {
-            $occupant = $this->gameIdsByTeam[$team->normalizedName] ?? null;
-
-            if ($occupant !== null && $occupant !== $id) {
-                throw TeamAlreadyPlaying::named($team);
-            }
-        }
-
         if (isset($this->games[$id])) {
             $this->unindex($this->games[$id]);
         }
@@ -47,6 +39,14 @@ final class InMemoryGameRepository implements GameRepository
     public function get(GameId $id): Game
     {
         return $this->games[$id->value] ?? throw GameNotFound::withId($id);
+    }
+
+    #[\Override]
+    public function findByTeam(Team $team): ?Game
+    {
+        $id = $this->gameIdsByTeam[$team->normalizedName] ?? null;
+
+        return $id === null ? null : $this->games[$id];
     }
 
     #[\Override]
@@ -74,7 +74,9 @@ final class InMemoryGameRepository implements GameRepository
     private function unindex(Game $game): void
     {
         foreach ($game->teams() as $team) {
-            unset($this->gameIdsByTeam[$team->normalizedName]);
+            if (($this->gameIdsByTeam[$team->normalizedName] ?? null) === $game->id->value) {
+                unset($this->gameIdsByTeam[$team->normalizedName]);
+            }
         }
     }
 }

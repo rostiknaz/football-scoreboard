@@ -38,6 +38,12 @@ final readonly class ScoreBoard
     {
         $game = Game::start(GameId::generate(), new Team($homeTeam), new Team($awayTeam));
 
+        foreach ($game->teams() as $team) {
+            if ($this->games->findByTeam($team) !== null) {
+                throw TeamAlreadyPlaying::named($team);
+            }
+        }
+
         $this->games->save($game);
 
         return $game->id;
