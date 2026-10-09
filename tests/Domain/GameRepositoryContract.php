@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Nazymko\ScoreBoard\Tests\Domain;
 
 use Nazymko\ScoreBoard\Domain\Exception\GameNotFound;
+use Nazymko\ScoreBoard\Domain\Exception\TeamAlreadyPlaying;
 use Nazymko\ScoreBoard\Domain\Game;
 use Nazymko\ScoreBoard\Domain\GameId;
 use Nazymko\ScoreBoard\Domain\GameRepository;
 use Nazymko\ScoreBoard\Domain\Score;
 use Nazymko\ScoreBoard\Domain\Team;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -113,6 +115,65 @@ abstract class GameRepositoryContract extends TestCase
         $repository->remove($second->id);
 
         self::assertEquals([$first, $third], $repository->all());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function gamesInvolvingSpain(): iterable
+    {
+        yield 'as home team' => ['Spain', 'Italy'];
+        yield 'as away team' => ['Italy', 'Spain'];
+        yield 'spelled differently' => [' SPAIN ', 'Italy'];
+    }
+
+    #[DataProvider('gamesInvolvingSpain')]
+    public function testRejectsANewGameInvolvingATeamThatIsAlreadyPlaying(string $home, string $away): void
+    {
+        $repository = $this->createRepository();
+        $repository->save($this->game('Spain', 'Brazil'));
+
+        $this->expectException(TeamAlreadyPlaying::class);
+
+        $repository->save($this->game($home, $away));
+    }
+
+    public function testARejectedGameIsNotStored(): void
+    {
+        $repository = $this->createRepository();
+        $spainBrazil = $this->game('Spain', 'Brazil');
+        $repository->save($spainBrazil);
+
+        try {
+            $repository->save($this->game('Spain', 'Italy'));
+            self::fail('Expected the second game to be rejected.');
+        } catch (TeamAlreadyPlaying) {
+            self::assertEquals([$spainBrazil], $repository->all());
+        }
+    }
+
+    public function testReSavingAGameDoesNotConflictWithItself(): void
+    {
+        $repository = $this->createRepository();
+        $game = $this->game('Spain', 'Brazil');
+        $repository->save($game);
+
+        $repository->save($game->withScore(new Score(1, 0)));
+
+        self::assertCount(1, $repository->all());
+    }
+
+    public function testATeamIsFreeAgainOnceItsGameIsRemoved(): void
+    {
+        $repository = $this->createRepository();
+        $spainBrazil = $this->game('Spain', 'Brazil');
+        $repository->save($spainBrazil);
+        $repository->remove($spainBrazil->id);
+
+        $spainItaly = $this->game('Spain', 'Italy');
+        $repository->save($spainItaly);
+
+        self::assertEquals([$spainItaly], $repository->all());
     }
 
     private function game(string $home, string $away): Game

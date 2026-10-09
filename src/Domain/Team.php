@@ -14,6 +14,11 @@ final readonly class Team
 {
     public string $name;
 
+    /**
+     * Lower-cased name used for comparison and for indexing games by team.
+     */
+    public string $normalizedName;
+
     public function __construct(string $name)
     {
         $name = mb_trim($name);
@@ -23,10 +28,11 @@ final readonly class Team
         }
 
         $this->name = $name;
+        $this->normalizedName = mb_strtolower($name);
     }
 
     public function equals(self $other): bool
     {
-        return mb_strtolower($this->name) === mb_strtolower($other->name);
+        return $this->normalizedName === $other->normalizedName;
     }
 }

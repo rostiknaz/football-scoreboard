@@ -38,12 +38,6 @@ final readonly class ScoreBoard
     {
         $game = Game::start(GameId::generate(), new Team($homeTeam), new Team($awayTeam));
 
-        foreach ([$game->homeTeam, $game->awayTeam] as $team) {
-            if ($this->isPlaying($team)) {
-                throw TeamAlreadyPlaying::named($team);
-            }
-        }
-
         $this->games->save($game);
 
         return $game->id;
@@ -86,10 +80,5 @@ final readonly class ScoreBoard
         usort($games, static fn(Game $a, Game $b): int => $b->score->total() <=> $a->score->total());
 
         return $games;
-    }
-
-    private function isPlaying(Team $team): bool
-    {
-        return array_any($this->games->all(), static fn(Game $game): bool => $game->involves($team));
     }
 }

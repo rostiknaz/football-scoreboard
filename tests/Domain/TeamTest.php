@@ -52,6 +52,12 @@ final class TeamTest extends TestCase
         self::assertTrue(new Team("CÔTE D'IVOIRE")->equals(new Team("côte d'ivoire")));
     }
 
+    public function testExposesANormalisedNameForComparisonAndIndexing(): void
+    {
+        self::assertSame('spain', new Team(' SPAIN ')->normalizedName);
+        self::assertSame("côte d'ivoire", new Team("CÔTE D'IVOIRE")->normalizedName);
+    }
+
     public function testDifferentNamesAreNotEqual(): void
     {
         self::assertFalse(new Team('Spain')->equals(new Team('Brazil')));
