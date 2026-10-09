@@ -88,6 +88,33 @@ abstract class GameRepositoryContract extends TestCase
         self::assertEquals($updated, $repository->get($first->id));
     }
 
+    public function testRemovedGameCanNoLongerBeRetrieved(): void
+    {
+        $repository = $this->createRepository();
+        $game = $this->game('Mexico', 'Canada');
+        $repository->save($game);
+        $repository->remove($game->id);
+
+        $this->expectException(GameNotFound::class);
+
+        $repository->get($game->id);
+    }
+
+    public function testRemovingAGameKeepsTheOrderOfTheOthers(): void
+    {
+        $repository = $this->createRepository();
+        $first = $this->game('Mexico', 'Canada');
+        $second = $this->game('Spain', 'Brazil');
+        $third = $this->game('Germany', 'France');
+        $repository->save($first);
+        $repository->save($second);
+        $repository->save($third);
+
+        $repository->remove($second->id);
+
+        self::assertEquals([$first, $third], $repository->all());
+    }
+
     private function game(string $home, string $away): Game
     {
         return Game::start(GameId::generate(), new Team($home), new Team($away));
