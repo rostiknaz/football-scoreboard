@@ -25,6 +25,7 @@
     },
     "scripts": {
         "test": "phpunit",
+        "demo": "php examples/demo.php",
         "analyse": "phpstan analyse",
         "cs:check": "php-cs-fixer check --diff",
         "cs:fix": "php-cs-fixer fix",

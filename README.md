@@ -14,7 +14,12 @@ Requirements: PHP 8.4 or newer with the `mbstring` extension, and Composer.
 composer install
 composer check      # coding standard, static analysis and tests
 composer test       # tests only
+composer demo       # plays through a day of games and prints the board
 ```
+
+`examples/demo.php` plays an afternoon and an evening of games, goal by
+goal, and prints the board as games kick off, scores change and games
+finish.
 
 `composer check` runs php-cs-fixer (PER-CS 3.0), PHPStan at its maximum
 level and PHPUnit. The same command runs in CI on PHP 8.4 and 8.5.
