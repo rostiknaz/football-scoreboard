@@ -52,8 +52,9 @@ final readonly class ScoreBoard
     public function updateScore(GameId $gameId, int $homeScore, int $awayScore): void
     {
         $score = new Score($homeScore, $awayScore);
+        $game = $this->games->get($gameId);
 
-        $this->games->save($this->games->get($gameId)->withScore($score));
+        $this->games->save($game->withScore($score));
     }
 
     /**

@@ -6,7 +6,7 @@ namespace Nazymko\ScoreBoard\Domain\Exception;
 
 use Nazymko\ScoreBoard\Domain\Team;
 
-final class TeamAlreadyPlaying extends \DomainException implements ScoreBoardException
+final class TeamAlreadyPlaying extends \RuntimeException implements ScoreBoardException
 {
     public static function named(Team $team): self
     {

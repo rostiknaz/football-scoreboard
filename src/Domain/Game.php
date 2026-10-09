@@ -36,8 +36,11 @@ final readonly class Game
         return new self($this->id, $this->homeTeam, $this->awayTeam, $score);
     }
 
-    public function involves(Team $team): bool
+    /**
+     * @return array{Team, Team} home team first
+     */
+    public function teams(): array
     {
-        return $this->homeTeam->equals($team) || $this->awayTeam->equals($team);
+        return [$this->homeTeam, $this->awayTeam];
     }
 }

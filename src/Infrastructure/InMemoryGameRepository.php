@@ -25,19 +25,21 @@ final class InMemoryGameRepository implements GameRepository
     #[\Override]
     public function save(Game $game): void
     {
-        foreach ([$game->homeTeam, $game->awayTeam] as $team) {
+        $id = $game->id->value;
+
+        foreach ($game->teams() as $team) {
             $occupant = $this->gameIdsByTeam[$team->normalizedName] ?? null;
 
-            if ($occupant !== null && $occupant !== $game->id->value) {
+            if ($occupant !== null && $occupant !== $id) {
                 throw TeamAlreadyPlaying::named($team);
             }
         }
 
-        if (isset($this->games[$game->id->value])) {
-            $this->unindex($this->games[$game->id->value]);
+        if (isset($this->games[$id])) {
+            $this->unindex($this->games[$id]);
         }
 
-        $this->games[$game->id->value] = $game;
+        $this->games[$id] = $game;
         $this->index($game);
     }
 
@@ -64,12 +66,15 @@ final class InMemoryGameRepository implements GameRepository
 
     private function index(Game $game): void
     {
-        $this->gameIdsByTeam[$game->homeTeam->normalizedName] = $game->id->value;
-        $this->gameIdsByTeam[$game->awayTeam->normalizedName] = $game->id->value;
+        foreach ($game->teams() as $team) {
+            $this->gameIdsByTeam[$team->normalizedName] = $game->id->value;
+        }
     }
 
     private function unindex(Game $game): void
     {
-        unset($this->gameIdsByTeam[$game->homeTeam->normalizedName], $this->gameIdsByTeam[$game->awayTeam->normalizedName]);
+        foreach ($game->teams() as $team) {
+            unset($this->gameIdsByTeam[$team->normalizedName]);
+        }
     }
 }

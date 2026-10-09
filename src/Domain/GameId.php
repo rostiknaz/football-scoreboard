@@ -13,7 +13,11 @@ final readonly class GameId implements \Stringable
 {
     private function __construct(
         public string $value,
-    ) {}
+    ) {
+        if (preg_match('/^[0-9a-f]{32}$/', $value) !== 1) {
+            throw InvalidGameId::malformed($value);
+        }
+    }
 
     public static function generate(): self
     {
@@ -27,10 +31,6 @@ final readonly class GameId implements \Stringable
      */
     public static function fromString(string $value): self
     {
-        if (preg_match('/^[0-9a-f]{32}$/', $value) !== 1) {
-            throw InvalidGameId::malformed($value);
-        }
-
         return new self($value);
     }
 
