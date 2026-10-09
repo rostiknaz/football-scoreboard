@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nazymko\ScoreBoard\Tests;
 
 use Nazymko\ScoreBoard\Domain\Exception\GameNotFound;
+use Nazymko\ScoreBoard\Domain\Exception\InvalidScore;
 use Nazymko\ScoreBoard\Domain\Exception\InvalidTeamName;
 use Nazymko\ScoreBoard\Domain\Exception\TeamAlreadyPlaying;
 use Nazymko\ScoreBoard\Domain\Exception\TeamCannotPlayItself;
@@ -129,6 +130,84 @@ final class ScoreBoardTest extends TestCase
         $this->expectException(GameNotFound::class);
 
         $this->board->finishGame($id);
+    }
+
+    public function testUpdatesTheScoreOfALiveGame(): void
+    {
+        $id = $this->board->startGame('Mexico', 'Canada');
+
+        $this->board->updateScore($id, 0, 5);
+
+        $game = $this->onlyGame();
+        self::assertSame(0, $game->score->home);
+        self::assertSame(5, $game->score->away);
+    }
+
+    public function testUpdatesOnlyTheAddressedGame(): void
+    {
+        $mexicoCanada = $this->board->startGame('Mexico', 'Canada');
+        $spainBrazil = $this->board->startGame('Spain', 'Brazil');
+
+        $this->board->updateScore($spainBrazil, 10, 2);
+
+        self::assertSame(0, $this->game($mexicoCanada)->score->total());
+        self::assertSame(12, $this->game($spainBrazil)->score->total());
+    }
+
+    public function testScoreMayBeCorrectedDownwards(): void
+    {
+        $id = $this->board->startGame('Mexico', 'Canada');
+        $this->board->updateScore($id, 2, 1);
+
+        $this->board->updateScore($id, 1, 1);
+
+        $game = $this->onlyGame();
+        self::assertSame(1, $game->score->home);
+        self::assertSame(1, $game->score->away);
+    }
+
+    public function testUpdatingToTheCurrentScoreChangesNothing(): void
+    {
+        $id = $this->board->startGame('Mexico', 'Canada');
+        $this->board->updateScore($id, 3, 1);
+
+        $this->board->updateScore($id, 3, 1);
+
+        $game = $this->onlyGame();
+        self::assertSame(3, $game->score->home);
+        self::assertSame(1, $game->score->away);
+    }
+
+    public function testRejectsNegativeScores(): void
+    {
+        $id = $this->board->startGame('Mexico', 'Canada');
+
+        $this->expectException(InvalidScore::class);
+
+        $this->board->updateScore($id, -1, 0);
+    }
+
+    public function testUpdatingAnUnknownGameFails(): void
+    {
+        $this->expectException(GameNotFound::class);
+
+        $this->board->updateScore(GameId::generate(), 1, 0);
+    }
+
+    public function testUpdatingAFinishedGameFails(): void
+    {
+        $id = $this->board->startGame('Mexico', 'Canada');
+        $this->board->finishGame($id);
+
+        $this->expectException(GameNotFound::class);
+
+        $this->board->updateScore($id, 1, 0);
+    }
+
+    private function game(GameId $id): Game
+    {
+        return array_find($this->board->summary(), static fn(Game $game): bool => $game->id->equals($id))
+            ?? self::fail(sprintf('Game %s is not on the board.', $id));
     }
 
     private function onlyGame(): Game

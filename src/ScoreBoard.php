@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Nazymko\ScoreBoard;
 
 use Nazymko\ScoreBoard\Domain\Exception\GameNotFound;
+use Nazymko\ScoreBoard\Domain\Exception\InvalidScore;
 use Nazymko\ScoreBoard\Domain\Exception\InvalidTeamName;
 use Nazymko\ScoreBoard\Domain\Exception\TeamAlreadyPlaying;
 use Nazymko\ScoreBoard\Domain\Exception\TeamCannotPlayItself;
 use Nazymko\ScoreBoard\Domain\Game;
 use Nazymko\ScoreBoard\Domain\GameId;
 use Nazymko\ScoreBoard\Domain\GameRepository;
+use Nazymko\ScoreBoard\Domain\Score;
 use Nazymko\ScoreBoard\Domain\Team;
 
 /**
@@ -45,6 +47,19 @@ final readonly class ScoreBoard
         $this->games->save($game);
 
         return $game->id;
+    }
+
+    /**
+     * Replaces the score of a live game with the given absolute values.
+     *
+     * @throws InvalidScore
+     * @throws GameNotFound
+     */
+    public function updateScore(GameId $gameId, int $homeScore, int $awayScore): void
+    {
+        $score = new Score($homeScore, $awayScore);
+
+        $this->games->save($this->games->get($gameId)->withScore($score));
     }
 
     /**
