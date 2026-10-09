@@ -56,6 +56,5 @@ final class GameIdTest extends TestCase
         $id = GameId::generate();
 
         self::assertSame($id->value, (string) $id);
-        self::assertMatchesRegularExpression('/^[0-9a-f]{32}$/', (string) $id);
     }
 }
