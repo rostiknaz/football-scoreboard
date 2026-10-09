@@ -204,6 +204,58 @@ final class ScoreBoardTest extends TestCase
         $this->board->updateScore($id, 1, 0);
     }
 
+    public function testEmptyBoardHasAnEmptySummary(): void
+    {
+        self::assertSame([], $this->board->summary());
+    }
+
+    public function testSummaryOrdersGamesByTotalScoreHighestFirst(): void
+    {
+        $this->board->updateScore($this->board->startGame('Mexico', 'Canada'), 0, 5);
+        $this->board->updateScore($this->board->startGame('Spain', 'Brazil'), 10, 2);
+        $this->board->updateScore($this->board->startGame('Germany', 'France'), 2, 2);
+
+        self::assertSame(['Spain', 'Mexico', 'Germany'], $this->homeTeamsInSummary());
+    }
+
+    public function testGamesWithTheSameTotalAreOrderedMostRecentlyStartedFirst(): void
+    {
+        $this->board->updateScore($this->board->startGame('Germany', 'France'), 2, 2);
+        $this->board->updateScore($this->board->startGame('Argentina', 'Australia'), 3, 1);
+
+        self::assertSame(['Argentina', 'Germany'], $this->homeTeamsInSummary());
+    }
+
+    public function testUpdatingAScoreDoesNotMakeAGameMoreRecent(): void
+    {
+        $germanyFrance = $this->board->startGame('Germany', 'France');
+        $argentinaAustralia = $this->board->startGame('Argentina', 'Australia');
+
+        $this->board->updateScore($argentinaAustralia, 2, 0);
+        $this->board->updateScore($germanyFrance, 1, 1);
+
+        self::assertSame(['Argentina', 'Germany'], $this->homeTeamsInSummary());
+    }
+
+    public function testFinishingAGameKeepsTheOrderOfTheOthers(): void
+    {
+        $this->board->startGame('Mexico', 'Canada');
+        $spainBrazil = $this->board->startGame('Spain', 'Brazil');
+        $this->board->startGame('Germany', 'France');
+
+        $this->board->finishGame($spainBrazil);
+
+        self::assertSame(['Germany', 'Mexico'], $this->homeTeamsInSummary());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function homeTeamsInSummary(): array
+    {
+        return array_map(static fn(Game $game): string => $game->homeTeam->name, $this->board->summary());
+    }
+
     private function game(GameId $id): Game
     {
         return array_find($this->board->summary(), static fn(Game $game): bool => $game->id->equals($id))

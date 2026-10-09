@@ -73,11 +73,19 @@ final readonly class ScoreBoard
     }
 
     /**
+     * Live games ordered by total score, highest first; games with the same
+     * total are ordered by the most recently started first.
+     *
      * @return list<Game>
      */
     public function summary(): array
     {
-        return $this->games->all();
+        $games = array_reverse($this->games->all());
+
+        // usort() is stable since PHP 8.0, so equal totals keep the most recent first.
+        usort($games, static fn(Game $a, Game $b): int => $b->score->total() <=> $a->score->total());
+
+        return $games;
     }
 
     private function isPlaying(Team $team): bool
